@@ -1,26 +1,102 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* ===== Bro Barber Design Tokens ===== */
+@theme {
+  /* Surface & netral (light, warm) */
+  --color-cream-50: #fafaf7;
+  --color-cream-100: #f4f2ec;
+  --color-cream-200: #ebe7dc;
+
+  /* Teks / tinta */
+  --color-ink-900: #17150f;
+  --color-ink-700: #3a372f;
+  --color-ink-600: #55524b;
+  --color-ink-400: #8a877e;
+  --color-ink-200: #c9c5ba;
+
+  /* Border / garis */
+  --color-line: #e6e2d9;
+  --color-line-dark: #d8d3c4;
+
+  /* Aksen bronze (dipakai hemat) */
+  --color-bronze-100: #f1e9dc;
+  --color-bronze-200: #e2d3ba;
+  --color-bronze-500: #b08d57;
+  --color-bronze-600: #96753f;
+  --color-bronze-700: #7a5d30;
+
+  /* Status (muted, tidak menyala) */
+  --color-ok-100: #e3ece3;
+  --color-ok-600: #55705b;
+  --color-ok-800: #3f5a46;
+  --color-warn-100: #f3ecda;
+  --color-warn-600: #8a7442;
+  --color-warn-800: #6d5a30;
+  --color-danger-100: #f4e2df;
+  --color-danger-600: #9a4e45;
+  --color-danger-800: #7d3a33;
+  --color-info-100: #e3e7ee;
+  --color-info-600: #4e5b72;
+  --color-info-800: #3a4560;
+
+  /* Tipografi */
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-playfair), ui-serif, Georgia, serif;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  body {
+    @apply bg-cream-50 text-ink-900 font-sans antialiased;
+  }
+
+  ::selection {
+    @apply bg-bronze-200 text-ink-900;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Scrollbar halus untuk dashboard */
+.nice-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.nice-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.nice-scroll::-webkit-scrollbar-thumb {
+  background: var(--color-line-dark);
+  border-radius: 999px;
+}
+.nice-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--color-ink-400);
+}
+
+/* Utility: animasi masuk halus untuk modal/sheet */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-fade-in-up {
+  animation: fade-in-up 0.25s ease-out both;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out both;
 }
