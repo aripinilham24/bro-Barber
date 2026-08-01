@@ -1,4 +1,4 @@
-import { Schema, model, models } from "mongoose";
+import { Schema, model, models, Types, type Model } from "mongoose";
 
 export const PAYMENT_STATUS = ["PENDING", "PAID", "EXPIRED", "FAILED"] as const;
 export type PaymentStatus = (typeof PAYMENT_STATUS)[number];
@@ -7,7 +7,7 @@ export const PAYMENT_TYPE = ["DP", "REMAINING", "CASH"] as const;
 export type PaymentType = (typeof PAYMENT_TYPE)[number];
 
 export interface PaymentDoc {
-  reservation: Schema.Types.ObjectId;
+  reservation: Types.ObjectId;
   type: PaymentType;
   provider: "simulation" | "xendit" | "cash";
   externalId: string;
@@ -46,6 +46,5 @@ const paymentSchema = new Schema<PaymentDoc>(
   { timestamps: true }
 );
 
-export const PaymentModel =
-  (models.Payment as ReturnType<typeof model>) ??
-  model<PaymentDoc>("Payment", paymentSchema);
+export const PaymentModel: Model<PaymentDoc> =
+  (models.Payment as Model<PaymentDoc>) || model<PaymentDoc>("Payment", paymentSchema);

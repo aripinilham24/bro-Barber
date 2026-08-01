@@ -1,4 +1,4 @@
-import { Schema, model, models } from "mongoose";
+import { Schema, model, models, type Model } from "mongoose";
 
 export interface VoucherDoc {
   code: string;
@@ -25,6 +25,5 @@ const voucherSchema = new Schema<VoucherDoc>(
   { timestamps: true }
 );
 
-export const VoucherModel =
-  (models.Voucher as ReturnType<typeof model>) ??
-  model<VoucherDoc>("Voucher", voucherSchema);
+export const VoucherModel: Model<VoucherDoc> =
+  (models.Voucher as Model<VoucherDoc>) || model<VoucherDoc>("Voucher", voucherSchema);

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Clock, Scissors } from "lucide-react";
-import { formatRupiah, formatTime } from "@/lib/utils";
+import { formatRupiah } from "@/lib/utils";
 import type { ServiceShape } from "@/lib/types";
 import { Card } from "@/components/ui/Card";
 

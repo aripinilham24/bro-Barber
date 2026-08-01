@@ -23,7 +23,7 @@ export function Navbar() {
   const [signingOut, setSigningOut] = useState(false);
 
   const user = session?.user;
-  const role = user?.role as string | undefined;
+  const role = (user as { role?: string } | undefined)?.role;
   const isStaff = role === "admin" || role === "kasir";
 
   const handleSignOut = async () => {

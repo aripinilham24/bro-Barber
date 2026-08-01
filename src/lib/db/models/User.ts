@@ -1,4 +1,4 @@
-import { Schema, model, models } from "mongoose";
+import { Schema, model, models, type Model } from "mongoose";
 
 /**
  * Model User — mengacu ke koleksi `user` milik Better Auth.
@@ -37,6 +37,5 @@ const userSchema = new Schema<UserDoc>(
   }
 );
 
-export const UserModel =
-  (models.User as ReturnType<typeof model>) ??
-  model<UserDoc>("User", userSchema);
+export const UserModel: Model<UserDoc> =
+  (models.User as Model<UserDoc>) || model<UserDoc>("User", userSchema);

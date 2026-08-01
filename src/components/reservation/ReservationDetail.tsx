@@ -27,7 +27,7 @@ export function ReservationDetail({ id }: { id: string }) {
 
   const [data, setData] = useState<{
     reservation: ReservationDetail;
-    payments: Array<{ _id: string; type: string; amount: number; status: string; method: string }>;
+    payments: Array<{ _id: string; type: string; amount: number; status: string; method: string; paidAt?: string | null }>;
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);

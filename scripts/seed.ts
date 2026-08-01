@@ -49,7 +49,9 @@ async function seedUser(user: {
   role: string;
   phone: string;
 }) {
-  const db = (await connectDB()).connection.db;
+  const conn = await connectDB();
+  const db = conn.connection.db;
+  if (!db) throw new Error("Koneksi MongoDB belum siap");
   const users = db.collection("user");
 
   const existing = await users.findOne({ email: user.email });

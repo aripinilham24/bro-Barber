@@ -1,4 +1,4 @@
-import type { Types } from "mongoose";
+import { Types } from "mongoose";
 import { VoucherModel, ReservationModel } from "@/lib/db/models";
 import type { VoucherDoc } from "@/lib/db/models";
 
@@ -22,7 +22,7 @@ export async function validateVoucherForUser(
   if (!voucher.isActive) return { ok: false, reason: "INACTIVE" };
 
   const alreadyUsed = await ReservationModel.exists({
-    user: userId,
+    user: new Types.ObjectId(String(userId)),
     voucherCode: code,
     status: { $in: ["DP_PAID", "COMPLETED"] },
   });

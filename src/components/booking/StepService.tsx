@@ -1,7 +1,7 @@
 "use client";
 
 import { Clock, Scissors } from "lucide-react";
-import { formatRupiah, formatTime } from "@/lib/utils";
+import { formatRupiah } from "@/lib/utils";
 import type { ServiceOption } from "./types";
 import { cn } from "@/lib/utils";
 

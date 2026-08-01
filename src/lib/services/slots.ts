@@ -1,5 +1,4 @@
-import type { Types } from "mongoose";
-import { connectDB } from "@/lib/db/connect";
+import { Types } from "mongoose";
 import {
   TimeSlotModel,
   SiteContentModel,
@@ -27,7 +26,7 @@ function toHHMM(minutes: number) {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
-function generateSlotTimes(
+export function generateSlotTimes(
   open: string,
   close: string,
   duration: number,
@@ -109,7 +108,7 @@ export async function sweepExpiredSlots() {
   const slotIds = expired.map((s) => s._id);
   const reservationIds = expired
     .filter((s) => s.reservationId)
-    .map((s) => s.reservationId as Types.ObjectId);
+    .map((s) => new Types.ObjectId(String(s.reservationId)));
 
   const upd = await TimeSlotModel.updateMany(
     { _id: { $in: slotIds }, status: "BOOKED_PENDING" },
@@ -121,10 +120,13 @@ export async function sweepExpiredSlots() {
       { _id: { $in: reservationIds }, status: "PENDING_PAYMENT" },
       { $set: { status: "EXPIRED" } }
     );
-    await PaymentModel.updateMany(
-      { reservation: { $in: reservationIds }, status: "PENDING" },
-      { $set: { status: "EXPIRED" } }
-    );
+    // Perbarui payment satu per satu (menghindari $in pada field ref bertipe ObjectId)
+    for (const rid of reservationIds) {
+      await PaymentModel.updateMany(
+        { reservation: rid, status: "PENDING" },
+        { $set: { status: "EXPIRED" } }
+      );
+    }
   }
   return upd.modifiedCount;
 }

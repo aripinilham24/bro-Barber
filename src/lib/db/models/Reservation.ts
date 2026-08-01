@@ -1,4 +1,4 @@
-import { Schema, model, models } from "mongoose";
+import { Schema, model, models, Types, type Model } from "mongoose";
 
 export const RESERVATION_STATUS = [
   "PENDING_PAYMENT",
@@ -10,9 +10,9 @@ export const RESERVATION_STATUS = [
 export type ReservationStatus = (typeof RESERVATION_STATUS)[number];
 
 export interface ReservationDoc {
-  user: Schema.Types.ObjectId;
-  service: Schema.Types.ObjectId;
-  timeSlot: Schema.Types.ObjectId;
+  user: Types.ObjectId;
+  service: Types.ObjectId;
+  timeSlot: Types.ObjectId;
   date: string;
   startTime: string;
   status: ReservationStatus;
@@ -65,6 +65,6 @@ reservationSchema.index(
   }
 );
 
-export const ReservationModel =
-  (models.Reservation as ReturnType<typeof model>) ??
+export const ReservationModel: Model<ReservationDoc> =
+  (models.Reservation as Model<ReservationDoc>) ||
   model<ReservationDoc>("Reservation", reservationSchema);

@@ -36,7 +36,10 @@ export async function POST(request: NextRequest) {
   const ext = file.type.split("/")[1].replace("jpeg", "jpg");
   const name = `${crypto.randomUUID()}.${ext}`;
 
-  const uploadDir = path.join(process.cwd(), process.env.UPLOAD_DIR ?? "public/uploads");
+  const uploadDir = path.join(
+    /* turbopackIgnore: true */ process.cwd(),
+    process.env.UPLOAD_DIR ?? "public/uploads"
+  );
   await mkdir(uploadDir, { recursive: true });
   await writeFile(path.join(uploadDir, name), bytes);
 

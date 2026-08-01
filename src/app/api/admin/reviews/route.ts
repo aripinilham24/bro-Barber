@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/db/connect";
 import { ReviewModel } from "@/lib/db/models";
 import { requireRoles, ADMIN_ROLES } from "@/lib/api-helpers";

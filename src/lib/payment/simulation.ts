@@ -17,7 +17,7 @@ export const simulationProvider: PaymentProvider = {
     externalId,
     amount,
     expiresAt,
-    description,
+    description: _description,
   }: CreatePaymentParams): Promise<CreatePaymentResult> {
     // String QRIS palsu (bukan QRIS asli). Ditampilkan sebagai QR + kode manual.
     const qrString = `SIMQRIS|${externalId}|${amount}|BROBARBER`;

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Types } from "mongoose";
 import { connectDB } from "@/lib/db/connect";
-import { ReviewModel, UserModel } from "@/lib/db/models";
+import { ReviewModel } from "@/lib/db/models";
 import { getSession } from "@/lib/session";
 
 /** GET: ulasan yang sudah disetujui (tampil di landing) */
@@ -51,10 +52,11 @@ export async function POST(request: NextRequest) {
 
   await connectDB();
   const { ReservationModel } = await import("@/lib/db/models");
+  const userId = new Types.ObjectId(String(session.user.id));
 
   const reservation = await ReservationModel.findOne({
-    _id: reservationId,
-    user: session.user.id,
+    _id: new Types.ObjectId(String(reservationId)),
+    user: userId,
   }).lean();
   if (!reservation) {
     return NextResponse.json(
@@ -79,7 +81,7 @@ export async function POST(request: NextRequest) {
 
   const review = await ReviewModel.create({
     reservation: reservation._id,
-    user: session.user.id,
+    user: userId,
     rating: r,
     comment: comment.trim(),
     photoUrl: photoUrl ?? "",

@@ -1,4 +1,4 @@
-import { MapPin, Phone, Instagram } from "lucide-react";
+import { MapPin, Phone, AtSign } from "lucide-react";
 import { formatTime } from "@/lib/utils";
 import type { SiteContentShape } from "@/lib/types";
 import { Card } from "@/components/ui/Card";
@@ -82,7 +82,7 @@ export function HoursContact({ content }: { content: SiteContentShape }) {
                 className="flex items-center gap-3 text-sm text-ink-700"
                 {...(contact.instagram ? { target: "_blank", rel: "noreferrer" } : {})}
               >
-                <Instagram size={18} className="shrink-0 text-bronze-600" />
+                <AtSign size={18} className="shrink-0 text-bronze-600" />
                 {contact.instagram}
               </a>
             </div>

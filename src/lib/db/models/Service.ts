@@ -1,4 +1,4 @@
-import { Schema, model, models } from "mongoose";
+import { Schema, model, models, type Model } from "mongoose";
 
 export interface ServiceDoc {
   name: string;
@@ -25,6 +25,5 @@ const serviceSchema = new Schema<ServiceDoc>(
   { timestamps: true }
 );
 
-export const ServiceModel =
-  (models.Service as ReturnType<typeof model>) ??
-  model<ServiceDoc>("Service", serviceSchema);
+export const ServiceModel: Model<ServiceDoc> =
+  (models.Service as Model<ServiceDoc>) || model<ServiceDoc>("Service", serviceSchema);

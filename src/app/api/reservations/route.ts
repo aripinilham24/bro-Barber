@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Types } from "mongoose";
 import { connectDB } from "@/lib/db/connect";
 import { ServiceModel, ReservationModel, PaymentModel, TimeSlotModel } from "@/lib/db/models";
 import { getSession } from "@/lib/session";
@@ -6,7 +7,6 @@ import { sweepExpiredSlots, lockSlot, getLockDurationMs } from "@/lib/services/s
 import { validateVoucherForUser } from "@/lib/services/vouchers";
 import { computePrice } from "@/lib/services/pricing";
 import { getPaymentProvider } from "@/lib/payment";
-import type { Types } from "mongoose";
 
 /**
  * POST /api/reservations — buat reservasi (wajib login client).
@@ -63,8 +63,7 @@ export async function POST(request: NextRequest) {
     // 2) Voucher (opsional)
     let discountPercent = 0;
     if (voucherCode?.trim()) {
-      const voucherResult = await validateVoucherForUser(voucherCode, session.user.id);
-      if (!voucherResult.ok) {
+      const voucherResult = await validateVoucherForUser(voucherCode, session.user.id);      if (!voucherResult.ok) {
         // kembalikan slot jika voucher tidak valid
         await TimeSlotModel.updateOne(
           { _id: slot._id, status: "BOOKED_PENDING" },
@@ -83,7 +82,7 @@ export async function POST(request: NextRequest) {
 
     // 4) Simpan reservasi
     const reservation = await ReservationModel.create({
-      user: session.user.id,
+      user: new Types.ObjectId(String(session.user.id)),
       service: service._id,
       timeSlot: slot._id,
       date: slot.date,

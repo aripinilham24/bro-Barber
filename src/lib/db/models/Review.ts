@@ -1,11 +1,11 @@
-import { Schema, model, models } from "mongoose";
+import { Schema, model, models, Types, type Model } from "mongoose";
 
 export const REVIEW_STATUS = ["PENDING", "APPROVED", "REJECTED"] as const;
 export type ReviewStatus = (typeof REVIEW_STATUS)[number];
 
 export interface ReviewDoc {
-  reservation: Schema.Types.ObjectId | null;
-  user: Schema.Types.ObjectId;
+  reservation: Types.ObjectId | null;
+  user: Types.ObjectId;
   rating: number;
   comment: string;
   photoUrl: string;
@@ -36,6 +36,5 @@ reviewSchema.index(
   { unique: true, partialFilterExpression: { reservation: { $type: "objectId" } } }
 );
 
-export const ReviewModel =
-  (models.Review as ReturnType<typeof model>) ??
-  model<ReviewDoc>("Review", reviewSchema);
+export const ReviewModel: Model<ReviewDoc> =
+  (models.Review as Model<ReviewDoc>) || model<ReviewDoc>("Review", reviewSchema);

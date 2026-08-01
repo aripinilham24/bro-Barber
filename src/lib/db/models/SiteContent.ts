@@ -1,4 +1,4 @@
-import { Schema, model, models } from "mongoose";
+import { Schema, model, models, type Model } from "mongoose";
 
 export interface DayHours {
   open: string; // "HH:mm" atau "" bila tutup
@@ -95,8 +95,8 @@ const siteContentSchema = new Schema<SiteContentDoc>(
   { timestamps: true }
 );
 
-export const SiteContentModel =
-  (models.SiteContent as ReturnType<typeof model>) ??
+export const SiteContentModel: Model<SiteContentDoc> =
+  (models.SiteContent as Model<SiteContentDoc>) ||
   model<SiteContentDoc>("SiteContent", siteContentSchema);
 
 /** Jam buka default: Selasa–Minggu 10.00–21.00, Senin tutup */

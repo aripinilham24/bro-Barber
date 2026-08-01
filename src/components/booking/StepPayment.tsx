@@ -21,7 +21,13 @@ export function StepPayment({
   const [status, setStatus] = useState<"waiting" | "paid" | "expired">("waiting");
   const [simulating, setSimulating] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const [serverStatus, setServerStatus] = useState(order.status);
+
+  const stopPolling = useCallback(() => {
+    if (pollRef.current) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+  }, []);
 
   // Render QR
   useEffect(() => {
@@ -34,6 +40,30 @@ export function StepPayment({
       .then(setQrDataUrl)
       .catch(() => setQrDataUrl(""));
   }, [order.qrString]);
+
+  // Polling status ke server
+  const checkStatus = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/reservations/${order.id}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.reservation.status === "DP_PAID") {
+        setStatus("paid");
+        stopPolling();
+        onPaid();
+      } else if (data.reservation.status === "EXPIRED") {
+        setStatus("expired");
+        stopPolling();
+      }
+    } catch {
+      /* abaikan, akan coba lagi */
+    }
+  }, [order.id, stopPolling, onPaid]);
+
+  useEffect(() => {
+    pollRef.current = setInterval(checkStatus, 3000);
+    return stopPolling;
+  }, [checkStatus, stopPolling]);
 
   // Countdown
   useEffect(() => {
@@ -50,38 +80,7 @@ export function StepPayment({
     tick();
     const t = setInterval(tick, 1000);
     return () => clearInterval(t);
-  }, [order.expiresAt]);
-
-  const stopPolling = useCallback(() => {
-    if (pollRef.current) {
-      clearInterval(pollRef.current);
-      pollRef.current = null;
-    }
-  }, []);
-
-  const checkStatus = useCallback(async () => {
-    try {
-      const res = await fetch(`/api/reservations/${order.id}`);
-      if (!res.ok) return;
-      const data = await res.json();
-      setServerStatus(data.reservation.status);
-      if (data.reservation.status === "DP_PAID") {
-        setStatus("paid");
-        stopPolling();
-      } else if (data.reservation.status === "EXPIRED") {
-        setStatus("expired");
-        stopPolling();
-      }
-    } catch {
-      /* abaikan, akan coba lagi */
-    }
-  }, [order.id, stopPolling]);
-
-  // Polling status
-  useEffect(() => {
-    pollRef.current = setInterval(checkStatus, 3000);
-    return stopPolling;
-  }, [checkStatus, stopPolling]);
+  }, [order.expiresAt, stopPolling]);
 
   const simulatePayment = async () => {
     setSimulating(true);

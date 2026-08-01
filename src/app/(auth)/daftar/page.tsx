@@ -40,7 +40,7 @@ function RegisterForm() {
       email,
       password,
       phone,
-    });
+    } as unknown as Parameters<typeof authClient.signUp.email>[0]);
     setLoading(false);
 
     if (err) {

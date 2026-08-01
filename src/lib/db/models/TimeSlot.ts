@@ -1,4 +1,4 @@
-import { Schema, model, models } from "mongoose";
+import { Schema, model, models, Types, type Model } from "mongoose";
 
 export const SLOT_STATUS = ["AVAILABLE", "BOOKED_PENDING", "BOOKED", "CLOSED"] as const;
 export type SlotStatus = (typeof SLOT_STATUS)[number];
@@ -9,7 +9,7 @@ export interface TimeSlotDoc {
   endTime: string; // HH:mm
   status: SlotStatus;
   lockedUntil: Date | null;
-  reservationId: Schema.Types.ObjectId | null;
+  reservationId: Types.ObjectId | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -29,6 +29,5 @@ const timeSlotSchema = new Schema<TimeSlotDoc>(
 // Satu slot unik per tanggal+jam
 timeSlotSchema.index({ date: 1, startTime: 1 }, { unique: true });
 
-export const TimeSlotModel =
-  (models.TimeSlot as ReturnType<typeof model>) ??
-  model<TimeSlotDoc>("TimeSlot", timeSlotSchema);
+export const TimeSlotModel: Model<TimeSlotDoc> =
+  (models.TimeSlot as Model<TimeSlotDoc>) || model<TimeSlotDoc>("TimeSlot", timeSlotSchema);

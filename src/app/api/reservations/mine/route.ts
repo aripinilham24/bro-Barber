@@ -1,14 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import { Types } from "mongoose";
 import { connectDB } from "@/lib/db/connect";
-import { ReservationModel, ServiceModel, TimeSlotModel, PaymentModel } from "@/lib/db/models";
+import { ReservationModel } from "@/lib/db/models";
 import { getSession } from "@/lib/session";
-import type { ReservationDoc } from "@/lib/db/models";
-
-type PopulatedReservation = ReservationDoc & {
-  service?: { name: string; price: number; duration: number };
-  timeSlot?: { startTime: string; endTime: string };
-  payments?: Array<{ type: string; amount: number; status: string; method: string }>;
-};
 
 /** GET /api/reservations/mine — riwayat reservasi milik user yang login */
 export async function GET() {
@@ -18,7 +12,9 @@ export async function GET() {
   }
 
   await connectDB();
-  const reservations = await ReservationModel.find({ user: session.user.id })
+  const reservations = await ReservationModel.find({
+    user: new Types.ObjectId(String(session.user.id)),
+  })
     .sort({ createdAt: -1 })
     .populate<{ service?: { name: string; price: number; duration: number } }>(
       "service",

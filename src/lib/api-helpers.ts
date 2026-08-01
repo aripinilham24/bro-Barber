@@ -4,7 +4,7 @@ export type ApiError = { error: string; status: number };
 
 /** Wajib login + role tertentu (server-side). Return error berstatus bila gagal. */
 export async function requireRoles(
-  roles: string[]
+  roles: readonly string[]
 ): Promise<{ session: NonNullable<Awaited<ReturnType<typeof getSession>>> } | ApiError> {
   const session = await getSession();
   if (!session) return { error: "Silakan login dulu", status: 401 };

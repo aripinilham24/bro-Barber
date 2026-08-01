@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { MapPin, Phone, Instagram } from "lucide-react";
+import { MapPin, Phone, AtSign } from "lucide-react";
 import type { SiteContentShape } from "@/lib/types";
 import { Logo } from "@/components/ui/Logo";
 
@@ -45,7 +45,7 @@ export function Footer({ content }: { content: SiteContentShape }) {
                 {contact.phone}
               </li>
               <li className="flex items-center gap-2">
-                <Instagram size={15} className="shrink-0 text-bronze-200" />
+                <AtSign size={15} className="shrink-0 text-bronze-200" />
                 {contact.instagram}
               </li>
             </ul>

@@ -40,7 +40,10 @@ export async function PUT(request: NextRequest) {
   }
 
   // Setel semua field kecuali timestamps/objectId
-  Object.assign(existing, sanitizeContent(body, existing.toObject()));
+  Object.assign(
+    existing,
+    sanitizeContent(body, existing.toObject() as unknown as Record<string, unknown>)
+  );
   await existing.save();
   return NextResponse.json(existing);
 }

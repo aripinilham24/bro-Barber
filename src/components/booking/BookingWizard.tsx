@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/Button";
 import { PageLoader } from "@/components/ui/Spinner";
@@ -47,7 +47,8 @@ export function BookingWizard() {
     }
   }, [isPending, session, router]);
 
-  const isClient = session?.user?.role !== "admin" && session?.user?.role !== "kasir";
+  const role = (session?.user as { role?: string } | undefined)?.role;
+  const isClient = role !== "admin" && role !== "kasir";
 
   // Ambil layanan + ketersediaan
   useEffect(() => {
