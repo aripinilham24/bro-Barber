@@ -62,7 +62,24 @@ export function BookingWizard() {
         const svc = await svcRes.json();
         const avail = await availRes.json();
         if (!alive) return;
-        setServices(svc);
+        // Normalisasi _id → id (API mengembalikan dokumen Mongoose mentah)
+        setServices(
+          (Array.isArray(svc) ? svc : []).map(
+            (s: {
+              _id: string;
+              name: string;
+              description: string;
+              price: number;
+              duration: number;
+            }) => ({
+              id: String(s._id),
+              name: s.name,
+              description: s.description,
+              price: s.price,
+              duration: s.duration,
+            })
+          )
+        );
         setAvailability(Array.isArray(avail) ? avail : []);
       } catch {
         if (alive) setError("Gagal memuat data. Coba muat ulang halaman.");
