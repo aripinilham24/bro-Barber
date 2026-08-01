@@ -1,50 +1,54 @@
 import { betterAuth } from "better-auth";
-import { mongodbAdapter } from "@better-auth/mongo-adapter";
-import mongoose from "mongoose";
+import { mongodbAdapter } from "better-auth/adapters/mongodb";
 import { admin } from "better-auth/plugins";
+import { MongoClient } from "mongodb";
 
-const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/bro-barber";
+/**
+ * Instans Better Auth untuk "Bro Barber".
+ *
+ * - Adapter MongoDB (transaksi aktif karena `client` diberikan)
+ * - Email/password (registrasi client)
+ * - Admin plugin → field `role` pada user (client | kasir | admin)
+ * - Sesi JWT disimpan pada cookie HttpOnly (default Better Auth)
+ *
+ * Catatan: modul ini hanya boleh diimpor dari server (tidak pernah dari
+ * komponen klien — untuk klien gunakan `@/lib/auth-client`).
+ */
+const MONGODB_URI =
+  process.env.MONGODB_URI ?? "mongodb://localhost:27017/bro-barber";
 
-// Koneksi MongoDB untuk Better Auth
-const client = new mongoose.MongoClient(MONGODB_URI);
-await client.connect();
-const db = client.db("bro-barber");
+// `db()` tidak memerlukan koneksi aktif; koneksi dibuat saat pertama dipakai.
+const client = new MongoClient(MONGODB_URI);
+const db = client.db();
 
 export const auth = betterAuth({
-  database: mongodbAdapter(db, {
-    client,
-  }),
+  database: mongodbAdapter(db, { client }),
 
-  // Better Auth v1 dengan email/password & adapter MongoDB
   emailAndPassword: {
     enabled: true,
     minPasswordLength: 8,
     requireEmailVerification: false,
   },
 
-  session: {
-    modelName: "sessions",
-    expiresIn: 7 * 24 * 60 * 60, // 7 hari
-    updateAge: 24 * 60 * 60, // 24 jam
-    storeSessionInDatabase: true,
-    cookieCache: {
-      enabled: true,
-      maxAge: 300, // 5 menit
+  user: {
+    additionalFields: {
+      phone: {
+        type: "string",
+        required: false,
+        input: true, // ikut dikirim dari form registrasi
+      },
     },
   },
 
-  // Plugin admin untuk role-based access control
   plugins: [
     admin({
       defaultRole: "client",
       adminRoles: ["admin"],
-      banUser: true,
-      bannedUserMessage: "Anda telah diblokir. Hubungi admin.",
-      getUserRole: async (user) => user.role,
-      setRole: true,
     }),
   ],
 
-  trustedOrigins: [process.env.BETTER_AUTH_URL || "http://localhost:3000"],
   secret: process.env.BETTER_AUTH_SECRET,
+  trustedOrigins: [process.env.BETTER_AUTH_URL ?? "http://localhost:3000"],
 });
+
+export type { Session, User } from "better-auth";

@@ -1,133 +1,162 @@
-"use strict";
-require("dotenv/config");
+/**
+ * Seed database "Bro Barber".
+ * Jalankan: npm run seed
+ *
+ * Membuat: layanan, voucher, konten CMS, user admin/kasir/client demo,
+ * ulasan contoh, dan slot untuk beberapa hari ke depan.
+ */
+import "dotenv/config";
 
-const mongoose = require("mongoose");
-const bcrypt = require("bcryptjs");
+import { connectDB } from "@/lib/db/connect";
+import {
+  ServiceModel,
+  VoucherModel,
+  SiteContentModel,
+  ReviewModel,
+  DEFAULT_BUSINESS_DAYS,
+} from "@/lib/db/models";
+import { ensureSlotsForRange } from "@/lib/services/slots";
+import { auth } from "@/auth";
 
-// Import models
-const User = require("./src/lib/db/models/User");
-const Service = require("./src/lib/db/models/Service");
-const Voucher = require("./src/lib/db/models/Voucher");
-const SiteContent = require("./src/lib/db/models/SiteContent");
-const { admin } = require("better-auth/plugins");
+const SEED = {
+  admin: {
+    name: "Admin Bro",
+    email: process.env.SEED_ADMIN_EMAIL ?? "admin@brobarber.id",
+    password: process.env.SEED_ADMIN_PASSWORD ?? "BroBarber123!",
+    role: "admin",
+    phone: "0812-0000-0001",
+  },
+  kasir: {
+    name: "Kasir Bro",
+    email: process.env.SEED_CASHIER_EMAIL ?? "kasir@brobarber.id",
+    password: process.env.SEED_CASHIER_PASSWORD ?? "BroBarber123!",
+    role: "kasir",
+    phone: "0812-0000-0002",
+  },
+  client: {
+    name: "Client Demo",
+    email: "client@brobarber.id",
+    password: "BroBarber123!",
+    role: "client",
+    phone: "0812-0000-0003",
+  },
+};
 
-// Koneksi MongoDB
-const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/bro-barber";
+async function seedUser(user: {
+  name: string;
+  email: string;
+  password: string;
+  role: string;
+  phone: string;
+}) {
+  const db = (await connectDB()).connection.db;
+  const users = db.collection("user");
 
-async function seed() {
-  try {
-    await mongoose.connect(MONGODB_URI, {
-      serverSelectionTimeoutMS: 5000,
-      socketTimeoutMS: 45000,
-      family: 4,
-    });
-    console.log("✓ Terhubung ke MongoDB");
+  const existing = await users.findOne({ email: user.email });
+  if (existing) {
+    // Pastikan role selalu benar (idempotent)
+    await users.updateOne(
+      { email: user.email },
+      { $set: { role: user.role, emailVerified: true } }
+    );
+    console.log(`  · user ${user.email} sudah ada (role diperbaiki)`);
+    return existing._id;
+  }
 
-    // Hapus data yang ada
-    await User.deleteMany({});
-    await Service.deleteMany({});
-    await Voucher.deleteMany({});
-    await SiteContent.deleteMany({});
+  // Buat via API Better Auth agar password di-hash dengan algoritma yang sama.
+  const result = await auth.api.signUpEmail({
+    body: {
+      name: user.name,
+      email: user.email,
+      password: user.password,
+      phone: user.phone,
+    },
+  });
 
-    // Seed layanan
-    const services = [
+  // Catatan: `_id` user adalah ObjectId; cocokkan via email (lebih aman).
+  await users.updateOne(
+    { email: user.email },
+    { $set: { role: user.role, emailVerified: true } }
+  );
+
+  console.log(`  · user ${user.email} dibuat (role ${user.role})`);
+  return result.user.id;
+}
+
+async function main() {
+  console.log("🌱 Seeding database Bro Barber...\n");
+  await connectDB();
+
+  // 1. Layanan
+  if ((await ServiceModel.countDocuments()) === 0) {
+    await ServiceModel.insertMany([
       {
         name: "Cukur Khas Bro Barber",
-        description: "Potongan rapi, tepat waktu, suasana barbershop klasik.",
+        description:
+          "Potongan presisi sesuai bentuk wajah, diakhiri cuci + kering. Ritual paling dicari di Bro Barber.",
         price: 50000,
         duration: 45,
-        image: "https://picsum.photos/seed/barber-1",
+        image: "",
         isActive: true,
         sortOrder: 0,
       },
       {
         name: "Grooming Komplet",
-        description: "Potong rambut + cukur + perawatan leher.",
+        description:
+          "Potong rambut, cukur jenggot/kumis, rapikan alis, dan perawatan wajah. Selesai dalam satu kursi.",
         price: 85000,
         duration: 60,
-        image: "https://picsum.photos/seed/barber-2",
+        image: "",
         isActive: true,
         sortOrder: 1,
       },
       {
-        name: "Cukur Alis + Jenggot",
-        description: "Bentuk alis dan rapikan jenggot sesuai bentuk wajah.",
+        name: "Cukur Jenggot & Kumis",
+        description:
+          "Rapikan garis dan bentuk dengan handuk panas, minyak setelahnya. Dijamin plong.",
         price: 40000,
         duration: 30,
-        image: "https://picsum.photos/seed/barber-3",
+        image: "",
         isActive: true,
         sortOrder: 2,
       },
-    ];
+      {
+        name: "Hair Tattoo & Detail",
+        description:
+          "Detail garis dan pola sesuai request. Untuk yang mau tampil beda.",
+        price: 60000,
+        duration: 40,
+        image: "",
+        isActive: true,
+        sortOrder: 3,
+      },
+    ]);
+    console.log("  ✓ 4 layanan dibuat");
+  } else {
+    console.log("  · layanan sudah ada");
+  }
 
-    await Service.insertMany(services);
-    console.log(`✓ ${services.length} layanan dis seed`);
-
-    // Seed voucher
-    const voucher = new Voucher({
+  // 2. Voucher
+  if ((await VoucherModel.countDocuments()) === 0) {
+    await VoucherModel.create({
       code: "CUKURFIRST",
       discountPercent: 10,
-      description: "Potongan 10% untuk pelanggan baru.",
+      description: "Potongan 10% untuk cukur pertamamu.",
       isActive: true,
     });
-    await voucher.save();
-    console.log(`✓ Voucher ${voucher.code} dis seed`);
+    console.log("  ✓ voucher CUKURFIRST (10%) dibuat");
+  } else {
+    console.log("  · voucher sudah ada");
+  }
 
-    // Seed admin dan kasir pengguna Better Auth
-    // Menggunakan native Node MongoDB driver untuk collections auth
-    const adminDb = mongoose.connection.db;
-    const usersCollection = adminDb.collection("user");
-    const sessionsCollection = adminDb.collection("session");
+  // 3. User admin/kasir/client
+  const adminId = await seedUser(SEED.admin);
+  const cashierId = await seedUser(SEED.kasir);
+  const clientId = await seedUser(SEED.client);
 
-    // Helper fungsi hash password
-    const hashPassword = (password: string) => bcrypt.hashSync(password, 10);
-
-    //Buat admin
-    const existingAdmin = await usersCollection.findOne({ email: "admin@brobarber.id" });
-    if (!existingAdmin) {
-      const adminUser = {
-        id: new mongoose.Types.ObjectId().toString(),
-        name: "Admin Bro",
-        email: "admin@brobarber.id",
-        password: hashPassword("BroBarber123!"),
-        emailVerified: true,
-        role: "admin",
-        phone: "",
-        banned: false,
-        banReason: null,
-        banExpires: null,
-        image: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      await usersCollection.insertOne(adminUser);
-      console.log("✓ Admin dis seed");
-    }
-
-    //Buat kasir
-    const existingCashier = await usersCollection.findOne({ email: "kasir@brobarber.id" });
-    if (!existingCashier) {
-      const cashierUser = {
-        id: new mongoose.Types.ObjectId().toString(),
-        name: "Kasir Bro",
-        email: "kasir@brobarber.id",
-        password: hashPassword("BroBarber123!"),
-        emailVerified: true,
-        role: "kasir",
-        phone: "",
-        banned: false,
-        banReason: null,
-        banExpires: null,
-        image: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      await usersCollection.insertOne(cashierUser);
-      console.log("✓ Kasir dis seed");
-    }
-
-    // Seed SiteContent
-    const content = new SiteContent({
+  // 4. Konten CMS
+  if ((await SiteContentModel.countDocuments()) === 0) {
+    await SiteContentModel.create({
       businessName: "Bro Barber",
       tagline: "Datang rapi, pulang lebih pede.",
       hero: {
@@ -137,55 +166,81 @@ async function seed() {
           "Pilih jamnya, kami siapkan kursinya. Tanpa nunggu antri, tanpa tebak-tebakan.",
         ctaText: "Amankan Slotmu",
         ctaSecondaryText: "Lihat Layanan",
-        image: "https://picsum.photos/seed/hero-brobarber",
+        image: "",
       },
       about: {
         title: "Dari satu kursi, untuk setiap potongan",
-        text:
-          "Bro Barber dimulai dari satu kursi dan satu keyakinan: setiap orang pantas tampil rapi tanpa drama. Tepat waktu, alat steril, harga transparan — itu janji kami di setiap potongan.",
-        image: "https://picsum.photos/seed/about-brobarber",
+        text: "Bro Barber dimulai dari satu kursi dan satu keyakinan: setiap orang pantas tampil rapi tanpa drama. Tepat waktu, alat steril, harga transparan — itu janji kami di setiap potongan.",
+        image: "",
       },
       hours: {
         slotDurationMinutes: 45,
         slotGapMinutes: 0,
-        days: {
-          1: { open: "", close: "" }, // Minggu tutup
-          2: { open: "10:00", close: "21:00" },
-          3: { open: "10:00", close: "21:00" },
-          4: { open: "10:00", close: "21:00" },
-          5: { open: "10:00", close: "21:00" },
-          6: { open: "09:00", close: "22:00" },
-          7: { open: "09:00", close: "22:00" },
-        },
+        days: DEFAULT_BUSINESS_DAYS,
       },
       contact: {
         address: "Jl. Merdeka No. 12, Jakarta",
         phone: "0812-3456-7890",
         instagram: "@brobarber.id",
-        mapsUrl: "https://maps.app.goo.gl/...",
+        mapsUrl: "",
       },
-      gallery: [
-        "https://picsum.photos/seed/gallery-1",
-        "https://picsum.photos/seed/gallery-2",
-        "https://picsum.photos/seed/gallery-3",
-        "https://picsum.photos/seed/gallery-4",
-      ],
+      gallery: [],
       footerText: "Datang rapi, pulang lebih pede.",
     });
-    await content.save();
-    console.log("✓ Konten CMS dis seed");
-
-    console.log("\n🎉 Seed selesai! Data siap untuk aplikasi Bro Barber.");
-  } catch (error) {
-    console.error("❌ Seed gagal:", error);
-    process.exit(1);
-  } finally {
-    await mongoose.disconnect();
+    console.log("  ✓ konten CMS dibuat");
+  } else {
+    console.log("  · konten CMS sudah ada");
   }
+
+  // 5. Ulasan contoh (status APPROVED agar tampil di landing)
+  if ((await ReviewModel.countDocuments()) === 0) {
+    const reviews = [
+      {
+        user: clientId,
+        rating: 5,
+        comment:
+          "Booking online-nya beneran anti antri. Datang langsung dicukur, hasil rapi dan kapsternya ramah. Recommended!",
+        photoUrl: "",
+        status: "APPROVED",
+      },
+      {
+        user: adminId,
+        rating: 5,
+        comment:
+          "Grooming kompletnya juara. Handuk panasnya bikin ngantuk, hasilnya fresh seharian.",
+        photoUrl: "",
+        status: "APPROVED",
+      },
+      {
+        user: cashierId,
+        rating: 4,
+        comment:
+          "Tempatnya bersih, alat steril, harga jelas dari awal. DP 50% via QRIS bikin aman dari no-show.",
+        photoUrl: "",
+        status: "APPROVED",
+      },
+    ];
+    await ReviewModel.insertMany(reviews);
+    console.log("  ✓ 3 ulasan contoh dibuat");
+  } else {
+    console.log("  · ulasan sudah ada");
+  }
+
+  // 6. Slot untuk 14 hari ke depan
+  const today = new Date();
+  const todayStr = today.toISOString().slice(0, 10);
+  const created = await ensureSlotsForRange(todayStr, 14);
+  console.log(`  ✓ ${created} slot dibuat untuk 14 hari ke depan`);
+
+  console.log("\n🎉 Seed selesai!");
+  console.log("   Admin: admin@brobarber.id / BroBarber123!");
+  console.log("   Kasir: kasir@brobarber.id / BroBarber123!");
+  console.log("   Client demo: client@brobarber.id / BroBarber123!");
 }
 
-if (require.main === module) {
-  seed();
-}
-
-module.exports = seed;
+main()
+  .then(() => process.exit(0))
+  .catch((err) => {
+    console.error("❌ Seed gagal:", err);
+    process.exit(1);
+  });
