@@ -34,6 +34,10 @@ yarn-error.log*
 .env*
 !.env.example
 
+# berkas kredensial (MongoDB Atlas onboarding, dsb.)
+*credentials*.env
+atlas-credentials.env
+
 # vercel
 .vercel
 
@@ -46,3 +50,4 @@ docs
 prd_barbershop_reservation.md
 AGENTS.md
 CLAUDE.md
+task.md

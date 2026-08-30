@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/db/connect";
 import { TimeSlotModel } from "@/lib/db/models";
 import { sweepExpiredSlots, ensureSlotsForDate, ensureSlotsForRange } from "@/lib/services/slots";
-import { addDays } from "@/lib/utils";
+import { addDays, todayISO } from "@/lib/utils";
 
 /**
  * GET /api/slots
@@ -24,8 +24,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(slots);
   }
 
-  const today = new Date();
-  const todayStr = today.toISOString().slice(0, 10);
+  const todayStr = todayISO();
   await ensureSlotsForRange(todayStr, 14);
 
   const dates = Array.from({ length: 14 }, (_, i) => addDays(todayStr, i));

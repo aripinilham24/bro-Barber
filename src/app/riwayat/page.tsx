@@ -7,6 +7,8 @@ import type { SiteContentShape } from "@/lib/types";
 
 export const metadata = { title: "Riwayat Reservasi" };
 
+export const dynamic = "force-dynamic";
+
 export default async function RiwayatPage() {
   await connectDB();
   const content = (await SiteContentModel.findOne().lean()) as unknown as

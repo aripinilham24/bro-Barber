@@ -7,6 +7,8 @@ import type { SiteContentShape } from "@/lib/types";
 
 export const metadata = { title: "Detail Reservasi" };
 
+export const dynamic = "force-dynamic";
+
 export default async function ReservasiDetailPage({
   params,
 }: {

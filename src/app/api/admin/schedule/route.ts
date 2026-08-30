@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/db/connect";
 import { ReservationModel } from "@/lib/db/models";
 import { sweepExpiredSlots } from "@/lib/services/slots";
 import { requireRoles, STAFF_ROLES } from "@/lib/api-helpers";
+import { todayISO } from "@/lib/utils";
 
 /**
  * GET /api/admin/schedule?date=YYYY-MM-DD
@@ -18,8 +19,7 @@ export async function GET(request: NextRequest) {
   await sweepExpiredSlots();
 
   const date =
-    new URL(request.url).searchParams.get("date") ??
-    new Date().toISOString().slice(0, 10);
+    new URL(request.url).searchParams.get("date") ?? todayISO();
 
   const reservations = await ReservationModel.find({ date })
     .sort({ startTime: 1 })

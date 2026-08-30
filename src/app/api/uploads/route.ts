@@ -1,15 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
-import crypto from "crypto";
 import { getSession } from "@/lib/session";
+import { uploadImage } from "@/lib/cloudinary";
 
 const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
 const ALLOWED = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 
 /**
  * POST /api/uploads — upload gambar untuk user yang login (mis. foto ulasan).
- * Disimpan ke public/uploads.
+ * Disimpan ke Cloudinary; mengembalikan secure URL.
  */
 export async function POST(request: NextRequest) {
   const session = await getSession();
@@ -33,15 +31,14 @@ export async function POST(request: NextRequest) {
   }
 
   const bytes = Buffer.from(await file.arrayBuffer());
-  const ext = file.type.split("/")[1].replace("jpeg", "jpg");
-  const name = `${crypto.randomUUID()}.${ext}`;
 
-  const uploadDir = path.join(
-    /* turbopackIgnore: true */ process.cwd(),
-    process.env.UPLOAD_DIR ?? "public/uploads"
-  );
-  await mkdir(uploadDir, { recursive: true });
-  await writeFile(path.join(uploadDir, name), bytes);
-
-  return NextResponse.json({ success: true, url: `/uploads/${name}` });
+  try {
+    const { secureUrl } = await uploadImage(bytes, "reviews");
+    return NextResponse.json({ success: true, url: secureUrl });
+  } catch {
+    return NextResponse.json(
+      { error: "Cloudinary tidak dikonfigurasi atau upload gagal" },
+      { status: 501 }
+    );
+  }
 }

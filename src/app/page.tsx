@@ -16,6 +16,8 @@ export const metadata: Metadata = {
     "Potong rambut tanpa nunggu antri. Booking slot online, DP 50% via QRIS, sisanya bayar setelah selesai.",
 };
 
+export const dynamic = "force-dynamic";
+
 async function getLandingData() {
   await connectDB();
 

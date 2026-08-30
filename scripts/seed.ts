@@ -16,6 +16,7 @@ import {
   DEFAULT_BUSINESS_DAYS,
 } from "@/lib/db/models";
 import { ensureSlotsForRange } from "@/lib/services/slots";
+import { todayISO } from "@/lib/utils";
 import { auth } from "@/auth";
 
 const SEED = {
@@ -229,8 +230,7 @@ async function main() {
   }
 
   // 6. Slot untuk 14 hari ke depan
-  const today = new Date();
-  const todayStr = today.toISOString().slice(0, 10);
+  const todayStr = todayISO();
   const created = await ensureSlotsForRange(todayStr, 14);
   console.log(`  ✓ ${created} slot dibuat untuk 14 hari ke depan`);
 
