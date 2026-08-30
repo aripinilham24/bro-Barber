@@ -10,7 +10,8 @@ import { MongoClient } from "mongodb";
  * - Email/password (registrasi client)
  * - Admin plugin → field `role` pada user (client | kasir | admin)
  * - Sesi JWT disimpan pada cookie HttpOnly (default Better Auth)
- * - `baseURL.allowedHosts` untuk proteksi host-header di produksi
+ * - `baseURL.allowedHosts` untuk proteksi host-header di produksi,
+ *   mencakup domain Vercel (produksi & preview) secara otomatis.
  *
  * Catatan: modul ini hanya boleh diimpor dari server (tidak pernah dari
  * komponen klien — untuk klien gunakan `@/lib/auth-client`).
@@ -32,6 +33,7 @@ function getAllowedHosts(): string[] {
     ? new URL(process.env.BETTER_AUTH_URL).host
     : null;
   if (urlHost && !hosts.includes(urlHost)) hosts.push(urlHost);
+  if (!hosts.includes("*.vercel.app")) hosts.push("*.vercel.app");
   hosts.push("localhost");
   return hosts;
 }
@@ -66,6 +68,7 @@ export const auth = betterAuth({
   trustedOrigins: [process.env.BETTER_AUTH_URL ?? "http://localhost:3000"],
   baseURL: {
     allowedHosts: getAllowedHosts(),
+    fallback: process.env.BETTER_AUTH_URL ?? "http://localhost:3000",
   },
 });
 

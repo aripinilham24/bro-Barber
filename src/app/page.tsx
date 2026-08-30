@@ -1,6 +1,11 @@
 import type { Metadata } from "next";
 import { connectDB } from "@/lib/db/connect";
-import { SiteContentModel, ServiceModel, ReviewModel } from "@/lib/db/models";
+import {
+  SiteContentModel,
+  ServiceModel,
+  ReviewModel,
+  DEFAULT_BUSINESS_DAYS,
+} from "@/lib/db/models";
 import type { SiteContentShape, ServiceShape, ReviewShape } from "@/lib/types";
 import { Navbar } from "@/components/landing/Navbar";
 import { Hero } from "@/components/landing/Hero";
@@ -9,6 +14,38 @@ import { About } from "@/components/landing/About";
 import { HoursContact } from "@/components/landing/HoursContact";
 import { Testimonials } from "@/components/landing/Testimonials";
 import { Footer } from "@/components/landing/Footer";
+
+const DEFAULT_CONTENT: SiteContentShape = {
+  businessName: "Bro Barber",
+  tagline: "Datang rapi, pulang lebih pede.",
+  hero: {
+    eyebrow: "Bro Barber — Cukur & Grooming",
+    title: "Datang. Cukur. Pulang Keren.",
+    subtitle:
+      "Pilih jamnya, kami siapkan kursinya. Tanpa nunggu antri, tanpa tebak-tebakan.",
+    ctaText: "Amankan Slotmu",
+    ctaSecondaryText: "Lihat Layanan",
+    image: "",
+  },
+  about: {
+    title: "Dari satu kursi, untuk setiap potongan",
+    text: "Bro Barber dimulai dari satu kursi dan satu keyakinan: setiap orang pantas tampil rapi tanpa drama. Tepat waktu, alat steril, harga transparan — itu janji kami di setiap potongan.",
+    image: "",
+  },
+  hours: {
+    slotDurationMinutes: 45,
+    slotGapMinutes: 0,
+    days: DEFAULT_BUSINESS_DAYS,
+  },
+  contact: {
+    address: "Jl. Merdeka No. 12, Jakarta",
+    phone: "0812-3456-7890",
+    instagram: "@brobarber.id",
+    mapsUrl: "",
+  },
+  gallery: [],
+  footerText: "Datang rapi, pulang lebih pede.",
+};
 
 export const metadata: Metadata = {
   title: "Bro Barber — Cukur & Grooming, Booking Online",
@@ -31,7 +68,7 @@ async function getLandingData() {
       .lean(),
   ]);
 
-  const contentShape = content as unknown as SiteContentShape & { _id?: unknown };
+  const contentShape = (content as SiteContentShape | null) ?? DEFAULT_CONTENT;
   const servicesShape: ServiceShape[] = services.map((s) => ({
     id: String(s._id),
     name: s.name,
