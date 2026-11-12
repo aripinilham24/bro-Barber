@@ -1,9 +1,11 @@
 services:
   mongodb:
-    # mongo:4.4 — CPU mesin ini (Intel Celeron N4020) tidak mendukung AVX,
-    # sedangkan MongoDB 5.0+ wajib AVX. Driver mongodb@7 tetap kompatibel dgn 4.4.
-    # Mode replica set (single node) agar transaksi yang dipakai Better Auth aktif.
-    image: mongo:4.4
+    # mongo:8 — Mongoose 9 hanya mendukung server MongoDB 6.0+ (lihat
+    # docs/compatibility.md), dan CPU mesin ini sudah mendukung AVX.
+    # Driver mongodb@7 mendukung server 4.4 – 9.0.
+    # Mode replica set (single node) WAJIB: Better Auth mengaktifkan
+    # transaksi otomatis pada adapter MongoDB (butuh rs.initiate()).
+    image: mongo:8
     container_name: bro-barber-mongo
     restart: unless-stopped
     command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
@@ -12,10 +14,38 @@ services:
     volumes:
       - bro_barber_mongo_data:/data/db
     healthcheck:
-      test: ["CMD", "mongo", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
       interval: 5s
       timeout: 5s
       retries: 30
 
+  rustfs:
+    # Object storage lokal yang S3-compatible.
+    # Catatan: image resmi MinIO (minio/minio & minio/mc) sudah DIHAPUS dari
+    # Docker Hub, sehingga RustFS (MinIO drop-in, protokol S3 identik) dipakai
+    # sebagai gantinya. Bucket + policy public-read dibuat oleh
+    # `npm run storage:init` (scripts/storage-init.ts, memakai SDK `minio`).
+    # Public-read WAJIB: URL gambar di-render <Image src=...> langsung di browser.
+    image: rustfs/rustfs:latest
+    container_name: bro-barber-rustfs
+    restart: unless-stopped
+    ports:
+      - "9000:9000" # S3 API (endpoint untuk aplikasi)
+      - "9001:9001" # Console web
+    environment:
+      RUSTFS_ACCESS_KEY: ${S3_ACCESS_KEY:-brobarber}
+      RUSTFS_SECRET_KEY: ${S3_SECRET_KEY:-brobarber123}
+      RUSTFS_ADDRESS: ":9000"
+      RUSTFS_CONSOLE_ENABLE: "true"
+      RUSTFS_CONSOLE_ADDRESS: ":9001"
+    volumes:
+      - bro_barber_rustfs_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
 volumes:
   bro_barber_mongo_data:
+  bro_barber_rustfs_data:

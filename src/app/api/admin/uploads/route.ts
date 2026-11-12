@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireRoles, STAFF_ROLES } from "@/lib/api-helpers";
-import { uploadImage } from "@/lib/cloudinary";
+import { uploadImage } from "@/lib/storage";
 
 const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
 const ALLOWED = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 
 /**
  * POST /api/admin/uploads — upload gambar (multipart, field "file").
- * Disimpan ke Cloudinary; mengembalikan secure URL.
+ * Disimpan ke object storage aktif (RustFS/MinIO S3 atau Cloudinary);
+ * mengembalikan URL publik.
  */
 export async function POST(request: NextRequest) {
   const auth = await requireRoles(STAFF_ROLES);
@@ -33,11 +34,11 @@ export async function POST(request: NextRequest) {
   const bytes = Buffer.from(await file.arrayBuffer());
 
   try {
-    const { secureUrl } = await uploadImage(bytes, "cms");
-    return NextResponse.json({ success: true, url: secureUrl });
+    const { url } = await uploadImage(bytes, "cms");
+    return NextResponse.json({ success: true, url });
   } catch {
     return NextResponse.json(
-      { error: "Cloudinary tidak dikonfigurasi atau upload gagal" },
+      { error: "Object storage belum dikonfigurasi atau upload gagal" },
       { status: 501 }
     );
   }

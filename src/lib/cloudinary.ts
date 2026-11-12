@@ -11,6 +11,11 @@ function getCloudinary(): typeof cloudinary.v2 | null {
   return cloudinary.v2;
 }
 
+/** True bila Cloudinary punya kredensial (dipakai dispatcher di storage.ts). */
+export function isCloudinaryConfigured(): boolean {
+  return Boolean(process.env.CLOUDINARY_URL);
+}
+
 /**
  * Upload buffer gambar ke Cloudinary.
  * Mengembalikan URL pengiriman aman (secure) dari asset.
