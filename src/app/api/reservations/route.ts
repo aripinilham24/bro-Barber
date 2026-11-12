@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
       { $set: { reservationId: reservation._id } }
     );
 
-    // 6) Buat payment DP via provider (simulasi / xendit)
+    // 6) Buat payment DP via provider simulasi
     const provider = getPaymentProvider();
     const externalId = `dp-${reservation._id.toString()}`;
     const expiresAt = new Date(Date.now() + getLockDurationMs());

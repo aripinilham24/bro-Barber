@@ -103,10 +103,12 @@ export function StepPayment({
 
   return (
     <div>
-      <h2 className="font-display text-xl font-bold text-ink-900">Bayar DP via QRIS</h2>
+      <h2 className="font-display text-xl font-bold text-ink-900">
+        Bayar DP via QRIS <span className="text-bronze-600">(Simulasi)</span>
+      </h2>
       <p className="mt-1 text-sm text-ink-600">
-        Scan QR di bawah dengan aplikasi pembayaran kamu (GoPay, OVO, ShopeePay,
-        mobile banking, dll).
+        QR di bawah hanya contoh tampilan. Karena ini mode demo, gunakan tombol
+        simulasi pembayaran di samping untuk melanjutkan.
       </p>
 
       <div className="mt-6 grid gap-6 md:grid-cols-[auto_1fr]">
@@ -190,11 +192,11 @@ export function StepPayment({
           ) : (
             <div className="rounded-2xl border border-bronze-200 bg-bronze-100 p-5">
               <p className="text-sm font-medium text-bronze-700">
-                Mode simulasi (development)
+                Mode simulasi
               </p>
               <p className="mt-1 text-sm text-bronze-700/80">
-                Belum terhubung ke Xendit asli. Tekan tombol di bawah untuk
-                mensimulasikan pembayaran berhasil.
+                Ini pembayaran demo — tidak ada uang yang benar-benar ditarik.
+                Tekan tombol di bawah untuk mensimulasikan pembayaran berhasil.
               </p>
               <Button
                 className="mt-4 w-full"

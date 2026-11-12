@@ -3,9 +3,8 @@ import { getPaymentProvider } from "@/lib/payment";
 import { processPaymentEvent } from "@/lib/payment/process";
 
 /**
- * POST /api/webhooks/payment — dipanggil penyedia pembayaran (simulasi / Xendit).
- * Verifikasi token dilakukan oleh provider.parseWebhook; respons 2xx cepat
- * karena Xendit akan melakukan retry bila bukan 2xx.
+ * POST /api/webhooks/payment — dipanggil penyedia pembayaran simulasi.
+ * Verifikasi token dilakukan oleh provider.parseWebhook.
  */
 export async function POST(request: NextRequest) {
   const provider = getPaymentProvider();

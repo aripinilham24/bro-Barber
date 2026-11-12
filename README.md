@@ -4,7 +4,7 @@ Aplikasi web barbershop **Bro Barber**: landing page + reservasi online berbasis
 DP 50% via QRIS (mode simulasi), dashboard admin/kasir, dan CMS.
 
 Dibangun dengan **Next.js 16** (App Router, TypeScript, Tailwind CSS v4), **MongoDB** (Mongoose 9),
-**Better Auth**, dan lapisan pembayaran yang siap ditukar ke **Xendit**.
+**Better Auth**, dan pembayaran **simulasi** (kode integrasi Xendit tetap tersedia untuk pengembangan lanjutan).
 
 ---
 
@@ -36,8 +36,7 @@ Dibangun dengan **Next.js 16** (App Router, TypeScript, Tailwind CSS v4), **Mong
 ## Prasyarat
 
 - Node.js 20.9+ (direkomendasikan 22+)
-- Docker (untuk MongoDB lokal)
-- CPU tanpa AVX → otomatis memakai `mongo:4.4` (MongoDB 5+ butuh AVX)
+- Docker + Docker Compose (untuk MongoDB & object storage lokal)
 
 ## Menjalankan
 
@@ -47,19 +46,59 @@ npm install
 
 # 2. Siapkan environment
 cp .env.example .env
-# Isi BETTER_AUTH_SECRET (acak panjang) — opsional bila hanya lokal
+# Isi BETTER_AUTH_SECRET: openssl rand -base64 32
 
-# 3. Jalankan MongoDB
+# 3. Jalankan MongoDB + object storage
 docker compose up -d
-# Pastikan sehat: docker compose ps
+docker compose ps          # tunggu keduanya (healthy)
 
-# 4. Seed data awal (admin, kasir, layanan, voucher, konten, slot 14 hari)
+# 4. Inisialisasi replica set MongoDB (WAJIB, sekali saja per volume)
+docker compose exec mongodb mongosh --quiet --eval \
+  'rs.initiate({_id:"rs0",members:[{_id:0,host:"localhost:27017"}]})'
+# Pastikan PRIMARY: docker compose exec mongodb mongosh --quiet \
+#   --eval 'rs.status().members.map(m=>m.stateStr)'
+
+# 5. Buat bucket object storage + policy public read (idempotent)
+npm run storage:init
+
+# 6. Seed data awal (admin, kasir, layanan, voucher, konten, slot 14 hari)
 npm run seed
 
-# 5. Jalankan dev server
+# 7. Jalankan dev server
 npm run dev
 # Buka http://localhost:3000
 ```
+
+### Layanan Lokal
+
+| Layanan | URL | Keterangan |
+| --- | --- | --- |
+| Aplikasi | http://localhost:3000 | Next.js dev server |
+| MongoDB | `localhost:27017` | `mongo:8`, replica set `rs0` |
+| Object storage (S3 API) | http://localhost:9000 | Bucket `bro-barber`, public read |
+| Object storage (console) | http://localhost:9001 | Login: `brobarber` / `brobarber123` |
+
+### Kenapa `rs.initiate()` wajib
+
+Better Auth mengaktifkan transaksi secara otomatis pada adapter MongoDB
+(`src/auth.ts` mengoper `client` ke `mongodbAdapter`). Transaksi hanya
+berjalan di **replica set member**, bukan standalone. Tanpa `rs.initiate()`,
+login & registrasi gagal dengan:
+`Transaction numbers are only allowed on a replica set member or mongos`.
+
+Host member di-set eksplisit ke `localhost:27017` agar dapat di-resolve dari
+host (bukan hostname container).
+
+### Troubleshooting
+
+| Gejala | Penyebab & solusi |
+| --- | --- |
+| `Transaction numbers are only allowed on a replica set member or mongos` | Replica set belum di-init → jalankan `rs.initiate()` (langkah 4) |
+| `Server selection timed out` / `no primary` | `rs.status()` belum `PRIMARY`, atau member host bukan `localhost:27017` |
+| `rs.initiate()` error "already initialized" | Sudah pernah di-init. Ini normal & idempoten — lanjutkan |
+| Upload gambar `501 Object storage belum dikonfigurasi` | `STORAGE_PROVIDER=s3` tapi env S3 kosong, atau `npm run storage:init` belum dijalankan |
+| Gambar 403 saat dibuka | Bucket belum public read → `npm run storage:init` |
+| `/_next/image` balas 400 | `images.dangerouslyAllowLocalIP` — sudah otomatis aktif di development |
 
 ## Akun Seed
 
@@ -91,26 +130,49 @@ npm run dev
 | `npm run lint` | ESLint |
 | `npm run test` | Unit test logika inti (pricing, slot) |
 | `npm run seed` | Seed database |
+| `npm run storage:init` | Buat bucket + policy public read |
 
 ## Environment Variables
 
 Lihat `.env.example`:
 
-- `MONGODB_URI` — koneksi MongoDB
-- `BETTER_AUTH_SECRET` / `BETTER_AUTH_URL` — Better Auth
-- `PAYMENT_PROVIDER` — `simulation` (default) atau `xendit`
+- `MONGODB_URI` — koneksi MongoDB (harus replica set)
+- `BETTER_AUTH_SECRET` / `BETTER_AUTH_URL` / `BETTER_AUTH_ALLOWED_HOSTS` — Better Auth
 - `PAYMENT_WEBHOOK_TOKEN` — token webhook simulasi
-- `XENDIT_SECRET_KEY` / `XENDIT_WEBHOOK_TOKEN` — untuk beralih ke Xendit
-- `UPLOAD_DIR` — folder upload lokal (`public/uploads`)
+- `XENDIT_SECRET_KEY` / `XENDIT_WEBHOOK_TOKEN` / `XENDIT_URL` — opsional, hanya untuk pengembangan integrasi Xendit (tidak aktif di aplikasi demo)
+- `STORAGE_PROVIDER` — `s3` (default, lokal) atau `cloudinary`
+- `S3_ENDPOINT` / `S3_PORT` / `S3_ACCESS_KEY` / `S3_SECRET_KEY` / `S3_BUCKET` / `S3_PUBLIC_URL` — object storage S3-compatible
+- `CLOUDINARY_URL` — hanya bila `STORAGE_PROVIDER=cloudinary`
 - `SEED_ADMIN_*` / `SEED_CASHIER_*` — kredensial seed
 
-## Beralih ke Xendit (Pembayaran Asli)
+## Object Storage
 
-1. Isi `PAYMENT_PROVIDER=xendit`, `XENDIT_SECRET_KEY`, `XENDIT_WEBHOOK_TOKEN`.
-2. Terapkan `src/lib/payment/xendit.ts` (stub sudah menyiapkan struktur):
-   - `createPayment()` → Xendit **Payment Request v3** (QRIS), callbackUrl ke `/api/webhooks/payment`.
-   - `parseWebhook()` → verifikasi header `x-callback-token`.
-3. Logika reservasi & slot **tidak berubah** karena lewat `PaymentProvider`.
+Upload gambar (foto ulasan, aset CMS) lewat `src/lib/storage.ts`, yang
+memilih provider dari `STORAGE_PROVIDER`:
+
+- **`s3`** (default, lokal) — RustFS, protokol S3 identik MinIO/AWS.
+  Dijalankan lewat `docker compose up -d rustfs`, diinisialisasi dengan
+  `npm run storage:init`.
+- **`cloudinary`** (produksi) — set `CLOUDINARY_URL`.
+
+Bucket harus **public read**, karena URL gambar dirender langsung di browser
+oleh `next/image`. `npm run storage:init` menerapkan policy `s3:GetObject`
+publik secara otomatis.
+
+> **Catatan MinIO:** image resmi `minio/minio` dan `minio/mc` sudah dihapus
+> dari Docker Hub, sehingga proyek ini memakai **RustFS** sebagai pengganti
+> yang drop-in (protokol S3 identik). Kode aplikasi tidak berubah.
+
+## Mode Pembayaran (Simulasi)
+
+Aplikasi demo ini **selalu memakai provider simulasi** (`src/lib/payment/index.ts`).
+Tidak ada transaksi atau uang sungguhan yang diproses. Pada langkah pembayaran,
+gunakan tombol **"Simulasikan Pembayaran Berhasil"** untuk menandai DP lunas.
+
+Kode integrasi Xendit tetap tersimpan di `src/lib/payment/xendit.ts`
+(Payment Request v3 QRIS + verifikasi webhook) untuk pengembangan lanjutan.
+Logika reservasi & slot tidak terikat ke provider karena memakai kontrak
+`PaymentProvider`.
 
 ## Struktur Utama
 
@@ -125,7 +187,8 @@ src/
 │   └── dashboard/          # Sidebar, PageHeader
 └── lib/
     ├── db/                 # Koneksi + model Mongoose
-    ├── payment/            # PaymentProvider (simulation / xendit stub)
+    ├── payment/            # PaymentProvider (simulation / xendit)
+    ├── storage.ts          # Object storage (S3/RustFS ↔ Cloudinary)
     ├── services/           # slots, pricing, vouchers (logika inti)
     └── ...
 ```

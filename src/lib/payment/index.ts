@@ -1,5 +1,4 @@
 import { simulationProvider } from "./simulation";
-import { xenditProvider } from "./xendit";
 import type { PaymentProvider } from "./types";
 
 export type {
@@ -9,8 +8,18 @@ export type {
   WebhookEvent,
 } from "./types";
 
-/** Pilih provider berdasarkan env PAYMENT_PROVIDER ("simulation" | "xendit") */
+/**
+ * Mode pembayaran aplikasi.
+ *
+ * Bro Barber dikunci ke SIMULASI agar alur demo tidak pernah membuat
+ * tagihan sungguhan. Integrasi Xendit tetap tersimpan di `./xendit.ts`
+ * bila nanti ingin diaktifkan kembali (kembalikan `xenditProvider` di sini).
+ */
 export function getPaymentProvider(): PaymentProvider {
-  const mode = process.env.PAYMENT_PROVIDER ?? "simulation";
-  return mode === "xendit" ? xenditProvider : simulationProvider;
+  return simulationProvider;
+}
+
+/** Selalu true selama aplikasi memakai simulasi. */
+export function isSimulationMode(): boolean {
+  return true;
 }

@@ -1,7 +1,7 @@
 /**
  * Abstraksi penyedia pembayaran.
- * Saat ini memakai provider simulasi; beralih ke Xendit cukup ganti
- * env PAYMENT_PROVIDER=xendit (stub sudah disiapkan di xendit.ts).
+ * Aplikasi demo ini selalu memakai provider simulasi.
+ * Integrasi Xendit tetap tersedia di `xendit.ts` untuk pengembangan lanjutan.
  */
 
 export interface CreatePaymentParams {
